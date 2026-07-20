@@ -84,7 +84,7 @@ output "filter_ids" {
 }
 
 output "filter_arns" {
- description = "Map of filter name => filter ARN — the only genuine ARNs this module emits (cross-resource reference type, e.g. for tf-mod-aws-eventbridge). Format: arn:<partition>:inspector2:<region>:<account-id>:owner/<owner-id>/filter/<filter-id>."
+ description = "Map of filter name => filter ARN — the only genuine ARNs this module emits (cross-resource reference type, e.g. for terraform-aws-eventbridge). Format: arn:<partition>:inspector2:<region>:<account-id>:owner/<owner-id>/filter/<filter-id>."
  value = { for k, v in aws_inspector2_filter.this: k => v.arn }
 }
 

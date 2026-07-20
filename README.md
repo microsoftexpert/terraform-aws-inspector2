@@ -37,17 +37,17 @@ Whether it's a star, a professional connection, or a coffee, every gesture helps
 
 ## 🗺️ Where this fits in the family
 
-`tf-mod-aws-inspector2` is a **security-enablement consumer** — it reads an existing Organization structure (account IDs) and feeds findings downstream to aggregation and finding-driven response. It creates no bucket, key, or compute of its own.
+`terraform-aws-inspector2` is a **security-enablement consumer** — it reads an existing Organization structure (account IDs) and feeds findings downstream to aggregation and finding-driven response. It creates no bucket, key, or compute of its own.
 
 ```mermaid
 flowchart LR
- org["tf-mod-aws-organizations<br/>(Phase 7) Org + member accounts"]
- kms["tf-mod-aws-kms<br/>CMK for finding-export sinks"]
- insp["tf-mod-aws-inspector2"]
- hub["tf-mod-aws-security-hub<br/>findings aggregation"]
- gd["tf-mod-aws-guardduty<br/>threat-detection peer"]
- eb["tf-mod-aws-eventbridge<br/>finding-driven response"]
- ssm["tf-mod-aws-ssm<br/>patch remediation"]
+ org["terraform-aws-organizations<br/>(Phase 7) Org + member accounts"]
+ kms["terraform-aws-kms<br/>CMK for finding-export sinks"]
+ insp["terraform-aws-inspector2"]
+ hub["terraform-aws-security-hub<br/>findings aggregation"]
+ gd["terraform-aws-guardduty<br/>threat-detection peer"]
+ eb["terraform-aws-eventbridge<br/>finding-driven response"]
+ ssm["terraform-aws-ssm<br/>patch remediation"]
 
  org -.->|"delegated_admin_account_id / member ids"| insp
  insp -.->|"findings"| hub
@@ -65,7 +65,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
- subgraph mod["tf-mod-aws-inspector2"]
+ subgraph mod["terraform-aws-inspector2"]
  en["aws_inspector2_enabler.this<br/>(keystone)<br/>account_ids x resource_types"]
  da["aws_inspector2_delegated_admin_account.this<br/>optional - management account"]
  oc["aws_inspector2_organization_configuration.this<br/>optional - delegated admin account<br/>auto_enable policy"]
@@ -139,7 +139,7 @@ Least-privilege actions the **Terraform execution identity** needs. The delegate
 ## 📁 Module Structure
 
 ```
-tf-mod-aws-inspector2/
+terraform-aws-inspector2/
 ├── providers.tf # required_providers (aws >= 6.0, < 7.0); no provider block; no configuration_aliases
 ├── variables.tf # enable_scanning/account_ids/resource_types → delegated-admin → org-config → members → filters → tags → timeouts
 ├── main.tf # enabler (this, keystone) + delegated-admin + org-config + member associations + filters
@@ -156,7 +156,7 @@ Smallest secure single-account call — enable scanning for this account on the 
 
 ```hcl
 module "inspector2" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   account_ids    = [data.aws_caller_identity.current.account_id]
   resource_types = ["EC2", "ECR", "LAMBDA"] # explicit, least-privilege scope — no wildcard-all
@@ -177,7 +177,7 @@ module "inspector2" {
 | Input | Type | Source |
 |---|---|---|
 | `account_ids` | `set(string)` (account IDs) | Caller / `data.aws_caller_identity` / `data.aws_organizations_organization` |
-| `delegated_admin_account_id` | `string` (account ID) | A known member/security account ID (not a `tf-mod-aws-organizations` output — Phase 7) |
+| `delegated_admin_account_id` | `string` (account ID) | A known member/security account ID (not a `terraform-aws-organizations` output — Phase 7) |
 | `member_account_ids` (map keys / `account_id`) | `string` (account IDs) | Caller-supplied existing member/child account IDs |
 
 ### Emits
@@ -187,12 +187,12 @@ module "inspector2" {
 | `id` | Synthetic composite id of the enabler (`[account_ids]-[resource_types]`) — state only, not an AWS ARN | Audit / state inspection |
 | `enabled_account_ids` | Account IDs scanning was enabled for | Compliance reporting |
 | `enabled_resource_types` | Resource types being scanned | Compliance reporting, Security Hub cross-check |
-| `delegated_admin_account_id` | Registered delegated admin account (`null` if unused) | `tf-mod-aws-guardduty` / `tf-mod-aws-security-hub` (same org security admin) |
+| `delegated_admin_account_id` | Registered delegated admin account (`null` if unused) | `terraform-aws-guardduty` / `terraform-aws-security-hub` (same org security admin) |
 | `delegated_admin_relationship_status` | Delegated-admin registration status (`null` if unused) | Drift / health monitoring |
 | `organization_auto_enable` | Applied `auto_enable` policy object (`null` if unused) | Compliance reporting |
 | `organization_max_account_limit_reached` | Whether the org hit the account ceiling (`null` if unused) | Alerting near the 10,000-account limit |
 | `member_association_ids` / `member_association_account_ids` / `member_association_statuses` | Maps keyed by member key | Membership audit / health monitoring |
-| `filter_ids` / `filter_arns` | Maps of filter name → id / ARN — the **only** genuine ARNs here | `tf-mod-aws-eventbridge` and modules referencing filters by ARN |
+| `filter_ids` / `filter_arns` | Maps of filter name → id / ARN — the **only** genuine ARNs here | `terraform-aws-eventbridge` and modules referencing filters by ARN |
 | `filter_tags_all` | Map of filter name → merged `tags_all` | Governance / audit (filters only) |
 
 ---
@@ -204,7 +204,7 @@ module "inspector2" {
 
 ```hcl
 module "inspector2" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   account_ids    = ["123456789012"] # this account (self)
   resource_types = ["EC2", "ECR"]   # scan hosts + container images only
@@ -218,7 +218,7 @@ module "inspector2" {
 
 ```hcl
 module "inspector2" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   account_ids    = ["123456789012"]
   resource_types = ["EC2", "ECR", "LAMBDA", "LAMBDA_CODE", "CODE_REPOSITORY"]
@@ -237,7 +237,7 @@ provider "aws" {
 }
 
 module "inspector2" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   account_ids    = ["123456789012"]
   resource_types = ["EC2", "ECR"]
@@ -262,7 +262,7 @@ module "inspector2" {
 
 ```hcl
 module "inspector2" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   account_ids    = ["123456789012"]
   resource_types = ["EC2"]
@@ -289,7 +289,7 @@ module "inspector2" {
 
 ```hcl
 module "inspector2" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   account_ids    = ["123456789012"]
   resource_types = ["ECR"]
@@ -314,7 +314,7 @@ module "inspector2" {
 
 ```hcl
 module "inspector2" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   account_ids    = ["123456789012"]
   resource_types = ["EC2", "ECR"]
@@ -337,7 +337,7 @@ module "inspector2" {
 
 ```hcl
 module "inspector2" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   account_ids    = ["123456789012"]
   resource_types = ["EC2"]
@@ -364,7 +364,7 @@ module "inspector2" {
 
 ```hcl
 module "inspector2" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   account_ids    = ["111111111111"] # this (admin) account
   resource_types = ["EC2", "ECR"]
@@ -384,7 +384,7 @@ module "inspector2" {
 ```hcl
 # Run this invocation against the Organizations MANAGEMENT account provider.
 module "inspector2_delegate" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   enable_scanning            = false # management account not necessarily scanned here
   enable_delegated_admin     = true
@@ -399,7 +399,7 @@ module "inspector2_delegate" {
 ```hcl
 # Run this invocation against the DELEGATED ADMINISTRATOR account provider.
 module "inspector2_org" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   enable_scanning                   = false # scope this call to the org policy only
   enable_organization_configuration = true
@@ -419,7 +419,7 @@ module "inspector2_org" {
 
 ```hcl
 module "inspector2" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   account_ids    = ["123456789012"]
   resource_types = ["EC2"]
@@ -443,13 +443,13 @@ provider "aws" {
 }
 
 module "inspector2_use1" {
-  source         = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source         = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
   account_ids    = ["123456789012"]
   resource_types = ["EC2", "ECR"]
 }
 
 module "inspector2_usw2" {
-  source         = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source         = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
   providers      = { aws = aws.west }
   account_ids    = ["123456789012"]
   resource_types = ["EC2", "ECR"]
@@ -462,7 +462,7 @@ module "inspector2_usw2" {
 
 ```hcl
 module "inspector2" {
-  source = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
 
   account_ids    = ["123456789012"]
   resource_types = ["EC2"] # narrowest useful scope — hosts only
@@ -479,7 +479,7 @@ module "inspector2" {
 ```hcl
 # 1) MANAGEMENT account provider — register the delegated administrator
 module "inspector2_delegate" {
-  source                     = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source                     = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
   enable_scanning            = false
   enable_delegated_admin     = true
   delegated_admin_account_id = "444455556666"
@@ -487,7 +487,7 @@ module "inspector2_delegate" {
 
 # 2) DELEGATED-ADMIN account provider — org auto-enable policy + local scanning + a filter
 module "inspector2_admin" {
-  source    = "git::https://github.com/microsoftexpert/tf-mod-aws-inspector2?ref=v1.0.0"
+  source    = "git::https://github.com/microsoftexpert/terraform-aws-inspector2?ref=v1.0.0"
   providers = { aws = aws.delegated_admin }
 
   account_ids    = ["444455556666"]
@@ -582,7 +582,7 @@ Secure-by-default posture and every opt-out, explicitly:
 | Account-boundary honesty | Delegated-admin and org-config are **independent toggles**, not a hardcoded two-provider split | Invoke the module against the correct provider per account |
 
 Other principles:
-- **One composite, one keystone.** The enabler is the keystone; the delegated-admin, org-config, member-association, and filter resources are meaningless without an Inspector activation context and are owned here. The Organization itself, Security Hub integration, remediation, and finding-export sinks are deliberately **out of scope** (owned by `tf-mod-aws-organizations`, `tf-mod-aws-security-hub`, `tf-mod-aws-ssm` / `tf-mod-aws-eventbridge`).
+- **One composite, one keystone.** The enabler is the keystone; the delegated-admin, org-config, member-association, and filter resources are meaningless without an Inspector activation context and are owned here. The Organization itself, Security Hub integration, remediation, and finding-export sinks are deliberately **out of scope** (owned by `terraform-aws-organizations`, `terraform-aws-security-hub`, `terraform-aws-ssm` / `terraform-aws-eventbridge`).
 - **`for_each`, never `count`,** for `member_account_ids` and `filters` — keyed by stable caller strings so reorders don't churn the plan.
 - **Honest tagging + outputs.** Because only filters are taggable and only filters emit ARNs, the module surfaces `filter_arns` / `filter_tags_all` rather than faking a module-wide `arn` / `tags_all`.
 
@@ -657,7 +657,7 @@ filter_tags_all = {
 - [Filtering and suppressing Amazon Inspector findings](https://docs.aws.amazon.com/inspector/latest/user/findings-managing-filtering.html)
 - [Amazon Inspector quotas](https://docs.aws.amazon.com/inspector/latest/user/inspector_quotas.html)
 - Terraform: [`aws_inspector2_enabler`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/inspector2_enabler) · [`aws_inspector2_delegated_admin_account`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/inspector2_delegated_admin_account) · [`aws_inspector2_organization_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/inspector2_organization_configuration) · [`aws_inspector2_member_association`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/inspector2_member_association) · [`aws_inspector2_filter`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/inspector2_filter)
-- Sibling modules: `tf-mod-aws-security-hub`, `tf-mod-aws-guardduty`, `tf-mod-aws-config`, `tf-mod-aws-eventbridge`, `tf-mod-aws-organizations`
+- Sibling modules: `terraform-aws-security-hub`, `terraform-aws-guardduty`, `terraform-aws-config`, `terraform-aws-eventbridge`, `terraform-aws-organizations`
 - Module internals: `SCOPE.md`
 
 ---

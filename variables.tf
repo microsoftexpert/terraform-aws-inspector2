@@ -127,7 +127,7 @@ variable "delegated_admin_account_id" {
 The 12-digit AWS account ID to register as the Inspector delegated
 administrator. Typically an existing member/security account ID (supplied
 directly or from data.aws_caller_identity / data.aws_organizations_organization
-in the root module — not a tf-mod-aws-organizations output,).
+in the root module — not a terraform-aws-organizations output,).
 
 Required when enable_delegated_admin = true; otherwise ignored. Defaults to null.
 EOT

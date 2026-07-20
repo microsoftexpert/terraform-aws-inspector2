@@ -1,4 +1,4 @@
-# tf-mod-aws-inspector2 — SCOPE
+# terraform-aws-inspector2 — SCOPE
 
 Composite **security enablement** module for Amazon Inspector v2 vulnerability
 scanning. It owns account/organization-level Inspector activation — which
@@ -64,7 +64,7 @@ The module manages the following (allow-list):
 Referenced by `id`/`arn`, never created here:
 
 - **AWS Organization itself** — `aws_organizations_organization` /
-  `aws_organizations_account` live in `tf-mod-aws-organizations` (Phase 7).
+  `aws_organizations_account` live in `terraform-aws-organizations` (Phase 7).
   This module assumes an Organization already exists when the delegated-admin
   or org-configuration resources are used; it does not create or manage OUs,
   member accounts, or the `EnableAWSServiceAccess` trusted-access toggle for
@@ -72,9 +72,9 @@ Referenced by `id`/`arn`, never created here:
   action typically performed alongside — but outside — this module; see
   `## AWS Prerequisites`).
 - **Security Hub / GuardDuty integration** — Inspector findings surfaced in
-  Security Hub are configured in `tf-mod-aws-security-hub`, not here.
+  Security Hub are configured in `terraform-aws-security-hub`, not here.
 - **Finding remediation** (SSM Patch Manager, EventBridge rules reacting to
-  findings) — owned by `tf-mod-aws-ssm` / `tf-mod-aws-eventbridge` (Phase 4).
+  findings) — owned by `terraform-aws-ssm` / `terraform-aws-eventbridge` (Phase 4).
 - **CMK for finding export encryption** — Inspector2 findings themselves are
   not stored in a caller-managed encrypted resource by this module; if
   findings are exported (e.g. via EventBridge → S3/Kinesis), the destination's
@@ -89,7 +89,7 @@ designation:
 
 | Input | Type | Source |
 |---|---|---|
-| `delegated_admin_account_id` | `string` (account id) | Typically a member account id already known to the caller, or `data.aws_organizations_organization`/`data.aws_caller_identity` in the root module — **not** a `tf-mod-aws-organizations` module output today, since that module is Phase 7 and not yet built |
+| `delegated_admin_account_id` | `string` (account id) | Typically a member account id already known to the caller, or `data.aws_organizations_organization`/`data.aws_caller_identity` in the root module — **not** a `terraform-aws-organizations` module output today, since that module is Phase 7 and not yet built |
 | `member_account_ids` (map keys) | `string` (account ids) | Caller-supplied list of existing member/child account ids |
 
 ## Required IAM permissions
@@ -121,7 +121,7 @@ accounts** (management vs. delegated administrator) and pull in
   resource in this module act on the Region set by the provider (or the
   optional per-resource `region` argument added in AWS provider v6 for
   multi-region flexibility — see `## Provider gotchas`). There is no
-  `tf-mod-aws-*` global Inspector2 module; a caller enabling multiple Regions
+  `terraform-aws-*` global Inspector2 module; a caller enabling multiple Regions
   invokes this module once per Region (directly or via a provider alias).
 - **Delegated administrator is a singleton per Organization, but per-Region
   in enforcement.** An Organization can have only one Inspector delegated
@@ -167,14 +167,14 @@ shaped around **state**, not cross-resource wiring:
 | `id` | Synthetic composite id of `aws_inspector2_enabler.this["this"]` (`[account_ids]-[resource_types]`, provider-generated) — informational only, not an AWS ARN/id other modules reference. `try(..., null)` — `null` when `enable_scanning = false` | Audit/state inspection only |
 | `enabled_account_ids` | The `account_ids` set passed to the enabler (`null` when `enable_scanning = false`) | Compliance reporting |
 | `enabled_resource_types` | The `resource_types` set passed to the enabler (`EC2`/`ECR`/`LAMBDA`/`LAMBDA_CODE`/`CODE_REPOSITORY`; `null` when `enable_scanning = false`) | Compliance reporting, Security Hub cross-check |
-| `delegated_admin_account_id` | Account id registered as Inspector delegated admin (`try(..., null)` if not used) | Audit; other security modules (`tf-mod-aws-guardduty`, `tf-mod-aws-security-hub`) that also need to know the org's delegated security admin |
+| `delegated_admin_account_id` | Account id registered as Inspector delegated admin (`try(..., null)` if not used) | Audit; other security modules (`terraform-aws-guardduty`, `terraform-aws-security-hub`) that also need to know the org's delegated security admin |
 | `delegated_admin_relationship_status` | `relationship_status` from `aws_inspector2_delegated_admin_account` (`try(..., null)`) | Drift/health monitoring |
 | `organization_auto_enable` | Object mirroring the applied `auto_enable` block (`try(..., null)`) | Compliance reporting |
 | `organization_max_account_limit_reached` | `max_account_limit_reached` computed attribute (`try(..., null)`) | Alerting when org approaches the 10,000-account ceiling |
 | `member_association_ids` | Map of member key → `aws_inspector2_member_association.this[key].id` | Audit/state inspection |
 | `member_association_account_ids` | Map of member key → associated member `account_id` | Audit/state inspection |
 | `member_association_statuses` | Map of member key → `relationship_status` | Membership health monitoring |
-| `filter_ids` / `filter_arns` | Map of filter name → `id`/`arn` for `aws_inspector2_filter.this[key]` — the **only** genuine ARNs this module emits | `tf-mod-aws-eventbridge` or other modules referencing suppression filters by ARN |
+| `filter_ids` / `filter_arns` | Map of filter name → `id`/`arn` for `aws_inspector2_filter.this[key]` — the **only** genuine ARNs this module emits | `terraform-aws-eventbridge` or other modules referencing suppression filters by ARN |
 | `filter_tags_all` | Map of filter name → computed `tags_all` | Governance/audit (filters only — no other resource here supports tags) |
 
 ## Provider gotchas
@@ -262,7 +262,7 @@ shaped around **state**, not cross-resource wiring:
   tags/ARN non-negotiables, rather than leaving the module with zero taggable
   resources.
 - **`aws_organizations_organization` and member-account creation are
-  deliberately excluded.** They belong to `tf-mod-aws-organizations`
+  deliberately excluded.** They belong to `terraform-aws-organizations`
   (Phase 7, not yet built). This module accepts raw account id strings for
   `delegated_admin_account_id` and `member_account_ids` rather than blocking
   on a Phase 7 dependency that doesn't exist yet.
